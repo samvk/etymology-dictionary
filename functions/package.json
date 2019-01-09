@@ -1,0 +1,30 @@
+{
+  "name": "etymology-dictionary",
+  "description": "CHANGEME",
+  "author": "SamVK",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase serve --only functions",
+    "shell": "firebase experimental:functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "actions-on-google": "^2.0.0",
+    "axios": "^0.18.0",
+    "firebase-admin": "^6.4.0",
+    "firebase-functions": "^2.1.0",
+    "watson-developer-cloud": "^3.15.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.3.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-fp": "^2.3.0",
+    "eslint-plugin-import": "^2.14.0"
+  },
+  "engines": {
+    "node": "8"
+  }
+}
