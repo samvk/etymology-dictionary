@@ -50,17 +50,14 @@ const getRootPhrase = async ({ phrase, language }) => {
     const config = { headers: DICTIONARY_HEADERS };
     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/search/${language}?q=${phrase}&limit=5`, config);
 
-    const rootPhrases = response.data.results.map(({ id }) => id);
+    const rootPhrases = response.data.results;
 
     return rootPhrases[0];
 };
 
-const getEtymology = async ({ phrase, partOfSpeech, locale }) => {
-    const [language, region] = locale.split('-');
-
-
-    const rootPhrase = await getRootPhrase({ phrase, language });
-
+const getEtymology = async ({
+    rootPhrase, partOfSpeech, language, region,
+}) => {
     const config = { headers: DICTIONARY_HEADERS };
     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/regions=${region}`, config);
 
@@ -78,11 +75,15 @@ const handleGetEtymology = async (conv, { phrase, article, word }) => {
     const { user: { locale } } = conv;
 
     try {
+        const [language, region] = locale.split('-');
+        const { word: displayPhrase, id: rootPhrase } = await getRootPhrase({ phrase, language });
         const partOfSpeech = getPartOfSpeech({ article, word });
 
-        const etymology = await getEtymology({ phrase, partOfSpeech, locale });
+        const etymology = await getEtymology({
+            rootPhrase, partOfSpeech, language, region,
+        });
 
-        const response = `${phrase}.  \n${etymology}`;
+        const response = `${displayPhrase}.  \n${etymology}`;
 
         conv.close(new SimpleResponse({
             text: response,
@@ -96,12 +97,7 @@ const handleGetEtymology = async (conv, { phrase, article, word }) => {
 
 app.intent(['get_etymology', 'Default Welcome Intent - get_etymology'], handleGetEtymology);
 
-// const getSentences = async ({ phrase, partOfSpeech, locale }) => {
-//     const [language] = locale.split('-');
-//
-//
-//     const rootPhrase = await getRootPhrase({ phrase, language });
-//
+// const getSentences = async ({ rootPhrase, partOfSpeech, language }) => {
 //     const config = { headers: DICTIONARY_HEADERS };
 //     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/sentences`, config);
 //
@@ -114,9 +110,11 @@ app.intent(['get_etymology', 'Default Welcome Intent - get_etymology'], handleGe
 //     const { user: { locale } } = conv;
 //
 //     try {
+//         const [language] = locale.split('-');
+//         const { id: rootPhrase } = await getRootPhrase({ phrase, language });
 //         const partOfSpeech = getPartOfSpeech({ article, word });
 //
-//         const sentences = await getSentences({ phrase, partOfSpeech, locale });
+//         const sentences = await getSentences({ rootPhrase, partOfSpeech, language });
 //         conv.close(`${sayOkay()}.  \n${randomPop(sentences)}`); // this should maybe loop through sentences (or is a random pop good enough)? Should it remember forever or just this session?
 //     } catch (error) {
 //         console.error(error);
