@@ -1,6 +1,6 @@
 {
   "name": "etymology-dictionary",
-  "description": "CHANGEME",
+  "description": "Ok Google, ask Etymology Dictionary what's the origin of...",
   "author": "SamVK",
   "scripts": {
     "lint": "eslint .",
