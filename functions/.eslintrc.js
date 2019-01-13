@@ -18,6 +18,7 @@ module.exports = {
     'rules': {
         'indent': [2, 4],
         'object-shorthand': [2, 'methods'],
+        'object-curly-newline': [1, { 'consistent': true }],
         'object-curly-spacing': [1],
         'max-len': [0],
         'arrow-parens': [2, 'always'],
