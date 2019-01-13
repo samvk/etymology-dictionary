@@ -2,7 +2,8 @@ const { dialogflow, SimpleResponse } = require('actions-on-google');
 const functions = require('firebase-functions');
 const axios = require('axios');
 const { DICTIONARY_HEADERS } = require('./config');
-const { trimQuotes, softFilter } = require('./util');
+const { stripCommonWords, sentenceToArray } = require('./helper');
+const { trimQuotes, findFirstNonEmpty } = require('./util');
 
 const app = dialogflow({ debug: true });
 
@@ -27,10 +28,57 @@ const getPartOfSpeech = ({ article, word }) => {
     }[article];
 };
 
-const handleDictionaryResponse = (response, propToExtract, { partOfSpeech }) => {
+// @param keyToPreserve {String} the one key NOT to filter because it's what you're choosing from
+const sortAndFilterKeywords = (haystacks, needles, keyToPreserve) => {
+    needles = Array.isArray(needles) ? needles : sentenceToArray(stripCommonWords(needles));
+
+    if (Array.isArray(haystacks)) {
+        return haystacks
+            .map((haystack) => ({
+                data: haystack,
+                score: sentenceToArray(JSON.stringify(haystack)).reduce((score, word) => (needles.some((needle) => word.startsWith(needle.toLowerCase())) ? ++score : score), 0),
+            }))
+            .filter(({ score }) => score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(({ data }) => sortAndFilterKeywords(data, needles, keyToPreserve));
+    }
+
+    if (typeof haystacks === 'object') {
+        return Object.entries(haystacks).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: (key === keyToPreserve) ? value : sortAndFilterKeywords(value, needles, keyToPreserve),
+        }), {});
+    }
+
+
+    return haystacks;
+};
+
+// @param subPropToExtract {String} if propToExtract is an array or objects, use this prop to also requires this nested property in one of the listed objects
+const handleDictionaryResponse = (response, { meaning, partOfSpeech }, propToExtract, subPropToExtract) => {
     const { lexicalEntries } = response.data.results[0];
 
-    const filteredLexicalEntries = softFilter(lexicalEntries, ({ lexicalCategory }) => (lexicalCategory[propToExtract] && lexicalCategory.toLowerCase() === partOfSpeech));
+    let filteredLexicalEntries = lexicalEntries;
+
+    const propToExtractExists = (lexicalEntry) => (
+        lexicalEntry[propToExtract] && (!subPropToExtract || lexicalEntry[propToExtract].find(({ [subPropToExtract]: subProp }) => subProp))
+    );
+
+    // filter by meaning
+    if (meaning) {
+        filteredLexicalEntries = findFirstNonEmpty(
+            sortAndFilterKeywords(filteredLexicalEntries, meaning, subPropToExtract).filter((lexicalEntry) => propToExtractExists(lexicalEntry)),
+            filteredLexicalEntries,
+        );
+    }
+
+    // filter by part of speech
+    if (partOfSpeech) {
+        filteredLexicalEntries = findFirstNonEmpty(
+            filteredLexicalEntries.filter((lexicalEntry) => ((lexicalEntry.lexicalCategory.toLowerCase() === partOfSpeech) && propToExtractExists(lexicalEntry))),
+            filteredLexicalEntries,
+        );
+    }
 
     return filteredLexicalEntries.flatMap(({ [propToExtract]: prop }) => prop);
 };
@@ -55,15 +103,11 @@ const getRootPhrase = async ({ phrase, language }) => {
     return rootPhrases[0];
 };
 
-const getEtymology = async ({
-    rootPhrase, partOfSpeech, language, region,
-}) => {
+const getEtymology = async ({ rootPhrase, meaning, partOfSpeech, language, region }) => {
     const config = { headers: DICTIONARY_HEADERS };
     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/regions=${region}`, config);
 
-    const entries = handleDictionaryResponse(response, 'entries', { partOfSpeech });
-
-    // console.log(entries);
+    const entries = handleDictionaryResponse(response, { meaning, partOfSpeech }, 'entries', 'etymologies');
 
     return entries.find(({ etymologies }) => etymologies).etymologies[0];
 };
@@ -71,7 +115,7 @@ const getEtymology = async ({
 // app.intent('Default Fallback Intent', (conv) => {
 // });
 
-const handleGetEtymology = async (conv, { phrase, article, word }) => {
+const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
     const { user: { locale } } = conv;
 
     try {
@@ -79,9 +123,7 @@ const handleGetEtymology = async (conv, { phrase, article, word }) => {
         const { word: displayPhrase, id: rootPhrase } = await getRootPhrase({ phrase, language });
         const partOfSpeech = getPartOfSpeech({ article, word });
 
-        const etymology = await getEtymology({
-            rootPhrase, partOfSpeech, language, region,
-        });
+        const etymology = await getEtymology({ rootPhrase, meaning, partOfSpeech, language, region });
 
         const response = `${displayPhrase}.  \n${etymology}`;
 
@@ -97,16 +139,16 @@ const handleGetEtymology = async (conv, { phrase, article, word }) => {
 
 app.intent(['get_etymology', 'Default Welcome Intent - get_etymology'], handleGetEtymology);
 
-// const getSentences = async ({ rootPhrase, partOfSpeech, language }) => {
+// const getSentences = async ({ rootPhrase, meaning, partOfSpeech, language }) => {
 //     const config = { headers: DICTIONARY_HEADERS };
 //     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/sentences`, config);
 //
-//     const sentences = handleDictionaryResponse(response, 'sentences', { partOfSpeech });
+//     const sentences = handleDictionaryResponse(response, { meaning, partOfSpeech }, 'sentences');
 //
 //     return sentences.map(({ text }) => text); // the different lexical entries might relate to the different part of speeches?
 // };
 //
-// const handleUseInSentence = async (conv, { phrase, article, word }) => {
+// const handleUseInSentence = async (conv, { phrase, article, word, meaning }) => {
 //     const { user: { locale } } = conv;
 //
 //     try {
@@ -114,7 +156,7 @@ app.intent(['get_etymology', 'Default Welcome Intent - get_etymology'], handleGe
 //         const { id: rootPhrase } = await getRootPhrase({ phrase, language });
 //         const partOfSpeech = getPartOfSpeech({ article, word });
 //
-//         const sentences = await getSentences({ rootPhrase, partOfSpeech, language });
+//         const sentences = await getSentences({ rootPhrase, meaning, partOfSpeech, language });
 //         conv.close(`${sayOkay()}.  \n${randomPop(sentences)}`); // this should maybe loop through sentences (or is a random pop good enough)? Should it remember forever or just this session?
 //     } catch (error) {
 //         console.error(error);
@@ -127,3 +169,4 @@ app.intent(['get_etymology', 'Default Welcome Intent - get_etymology'], handleGe
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest(app);
 
 // getEtymology({ phrase: 'lead', article: 'the', locale: 'en-US' });
+// getEtymology({ rootPhrase: 'tear', meaning: 'eye', partOfSpeech: undefined, language: 'en', region: 'US' });
