@@ -3,7 +3,7 @@ const functions = require('firebase-functions');
 const axios = require('axios');
 const { DICTIONARY_HEADERS } = require('./config');
 const { stripCommonWords, sentenceToArray } = require('./helper');
-const { trimQuotes, findFirstNonEmpty } = require('./util');
+const { trimQuotes, findFirstNonEmpty, randomPop } = require('./util');
 
 const app = dialogflow({ debug: true });
 
@@ -103,6 +103,14 @@ const getRootPhrase = async ({ phrase, language }) => {
     return rootPhrases[0];
 };
 
+app.intent('Default Welcome Intent', (conv) => {
+    conv.ask(randomPop([
+        'Greetings. What word would you like to hear the origin of?',
+        'Hello, what word would you like to hear the origin of?',
+        'Hi, what word or phrase would you like to hear the origin of?',
+    ]));
+});
+
 const getEtymology = async ({ rootPhrase, meaning, partOfSpeech, language, region }) => {
     const config = { headers: DICTIONARY_HEADERS };
     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/regions=${region}`, config);
@@ -111,9 +119,6 @@ const getEtymology = async ({ rootPhrase, meaning, partOfSpeech, language, regio
 
     return entries.find(({ etymologies }) => etymologies).etymologies[0];
 };
-
-// app.intent('Default Fallback Intent', (conv) => {
-// });
 
 const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
     const { user: { locale } } = conv;
