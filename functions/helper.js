@@ -102,3 +102,8 @@ module.exports.stripCommonWords = (phrase) => (
 module.exports.sentenceToArray = (phrase) => (
     phrase.toLowerCase().replace(/[.,/#!$%&;:{}=`~()'"‘’“”]/g, ' ').split(/\s+/)
 );
+
+module.exports.simplifyWordArray = (arr) => {
+    const sameLetters = (str) => [...str].every((letter, _, list) => letter === list[0]);
+    return arr.map((word) => word.replace(/(\w{2})(ing|er|ed|[ie]?ly|e?y|e?s)$/g, (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters)));
+};

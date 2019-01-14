@@ -2,7 +2,7 @@ const { dialogflow, SimpleResponse } = require('actions-on-google');
 const functions = require('firebase-functions');
 const axios = require('axios');
 const { DICTIONARY_HEADERS } = require('./config');
-const { stripCommonWords, sentenceToArray } = require('./helper');
+const { stripCommonWords, sentenceToArray, simplifyWordArray } = require('./helper');
 const { trimQuotes, findFirstNonEmpty, randomPop } = require('./util');
 
 const app = dialogflow({ debug: true });
@@ -30,7 +30,7 @@ const getPartOfSpeech = ({ article, word }) => {
 
 // @param keyToPreserve {String} the one key NOT to filter because it's what you're choosing from
 const sortAndFilterKeywords = (haystacks, needles, keyToPreserve) => {
-    needles = Array.isArray(needles) ? needles : sentenceToArray(stripCommonWords(needles));
+    needles = Array.isArray(needles) ? needles : simplifyWordArray(sentenceToArray(stripCommonWords(needles)));
 
     if (Array.isArray(haystacks)) {
         return haystacks
