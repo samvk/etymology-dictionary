@@ -2,7 +2,7 @@ const { dialogflow, SimpleResponse } = require('actions-on-google');
 const functions = require('firebase-functions');
 const axios = require('axios');
 const { DICTIONARY_HEADERS } = require('./config');
-const { stripCommonWords, sentenceToArray, simplifyWordArray } = require('./helper');
+const { stripCommonWords, sentenceToArray, simplifyWordArray, simplifyWordPossibilities } = require('./helper');
 const { trimQuotes, findFirstNonEmpty, randomPop } = require('./util');
 
 const app = dialogflow({ debug: true });
@@ -117,7 +117,9 @@ const getEtymology = async ({ rootPhrase, meaning, partOfSpeech, language, regio
 
     const entries = handleDictionaryResponse(response, { meaning, partOfSpeech }, 'entries', 'etymologies');
 
-    return entries.find(({ etymologies }) => etymologies).etymologies[0];
+    const etymologies = entries.flatMap(({ etymologies }) => etymologies || []);
+
+    return etymologies[0];
 };
 
 const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
@@ -125,10 +127,20 @@ const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
 
     try {
         const [language, region] = locale.split('-');
-        const { word: displayPhrase, id: rootPhrase } = await getRootPhrase({ phrase, language });
+        const { word: displayPhrase, id: originalRootPhrase } = await getRootPhrase({ phrase, language });
         const partOfSpeech = getPartOfSpeech({ article, word });
 
-        const etymology = await getEtymology({ rootPhrase, meaning, partOfSpeech, language, region });
+        let etymology;
+        for (const rootPhrase of simplifyWordPossibilities(originalRootPhrase)) {
+            try {
+                etymology = await getEtymology({ rootPhrase, meaning, partOfSpeech, language, region });
+            } catch (e) {
+            }
+
+            if (etymology) {
+                break;
+            }
+        }
 
         let response;
         if (!etymology) {
@@ -179,3 +191,11 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest(app);
 
 // getEtymology({ phrase: 'lead', article: 'the', locale: 'en-US' });
 // getEtymology({ rootPhrase: 'tear', meaning: 'eye', partOfSpeech: undefined, language: 'en', region: 'US' });
+// handleGetEtymology(
+//     {
+//         ask(arg) { console.log('ASK:', arg); },
+//         close(arg) { console.log('CLOSE:', arg); },
+//         user: { locale: 'en-US' },
+//     },
+//     { phrase: 'running', article: '', word: '', meaning: '' },
+// );

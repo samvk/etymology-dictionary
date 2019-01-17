@@ -103,7 +103,30 @@ module.exports.sentenceToArray = (phrase) => (
     phrase.toLowerCase().replace(/[.,/#!$%&;:{}=`~()'"‘’“”]/g, ' ').split(/\s+/)
 );
 
-module.exports.simplifyWordArray = (arr) => {
-    const sameLetters = (str) => [...str].every((letter, _, list) => letter === list[0]);
-    return arr.map((word) => word.replace(/(\w{2})(ing|er|ed|[ie]?ly|e?y|e?s)$/g, (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters)));
-};
+const simplifyWordGenerator = (word, callback) => word.replace(
+    /(\w{2})(ing|er|ed|[ie]?ly|e?y|e?s)$/g,
+    callback,
+);
+
+const sameLetters = (str) => [...str].every((letter, _, list) => letter === list[0]);
+
+const simplifyWord = (word) => simplifyWordGenerator(
+    word,
+    (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters),
+);
+module.exports.simplifyWord = simplifyWord;
+
+// TODO::simplify
+module.exports.simplifyWordPossibilities = (word) => ([...new Set([
+    word,
+    simplifyWordGenerator(
+        word,
+        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : `${previousLetters}e`),
+    ),
+    simplifyWordGenerator(
+        word,
+        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : `${previousLetters}`),
+    ),
+])]);
+
+module.exports.simplifyWordArray = (arr) => arr.map(simplifyWord);
