@@ -14,8 +14,7 @@
     "actions-on-google": "^2.0.0",
     "axios": "^0.18.0",
     "firebase-admin": "^6.4.0",
-    "firebase-functions": "^2.1.0",
-    "watson-developer-cloud": "^3.15.0"
+    "firebase-functions": "^2.1.0"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.1",
