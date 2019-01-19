@@ -1,4 +1,4 @@
-const { dialogflow, SimpleResponse } = require('actions-on-google');
+const { dialogflow, SimpleResponse, BasicCard } = require('actions-on-google');
 const functions = require('firebase-functions');
 const axios = require('axios');
 const { DICTIONARY_HEADERS } = require('./config');
@@ -142,16 +142,20 @@ const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
             }
         }
 
-        const response = etymology ? (
-            `${displayPhrase}.  \n${etymology}`
-        ) : (
-            `No entries found for ${displayPhrase}.`
-        );
-
-        conv.close(new SimpleResponse({
-            text: response,
-            speech: speechEnhancer(response),
-        }));
+        if (etymology) {
+            conv.ask(new SimpleResponse({
+                text: randomPop([
+                    `Here you go!`,
+                    `Coming right up!`,
+                    `This is what I found`,
+                    `Here's what I found`,
+                ]),
+                speech: speechEnhancer(`${displayPhrase}. ${etymology}.`),
+            }));
+            conv.close(new BasicCard({ title: displayPhrase, text: `${etymology}.` }));
+        } else {
+            conv.close(`No entries found for ${displayPhrase}.`);
+        }
     } catch (error) {
         console.error(error);
         conv.close(`No entries found for ${phrase}.`);
