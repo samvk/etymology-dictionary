@@ -142,11 +142,11 @@ const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
             }
         }
 
-        let response;
-        if (!etymology) {
-            response = `No entries found for ${displayPhrase}.`;
-        }
-        response = `${displayPhrase}.  \n${etymology}`;
+        const response = etymology ? (
+            `${displayPhrase}.  \n${etymology}`
+        ) : (
+            `No entries found for ${displayPhrase}.`
+        );
 
         conv.close(new SimpleResponse({
             text: response,
