@@ -1,8 +1,8 @@
-const { dialogflow, SimpleResponse, BasicCard } = require('actions-on-google');
+const { dialogflow, SimpleResponse, BasicCard, Suggestions } = require('actions-on-google');
 const functions = require('firebase-functions');
 const axios = require('axios');
 const { DICTIONARY_HEADERS } = require('./config');
-const { stripCommonWords, sentenceToArray, simplifyWordArray, simplifyWordPossibilities } = require('./helper');
+const { stripCommonWords, sentenceToArray, simplifyWordArray, simplifyWordPossibilities, randomPhraseList } = require('./helper');
 const { trimQuotes, findFirstNonEmpty, randomPop } = require('./util');
 
 const app = dialogflow({ debug: true });
@@ -83,6 +83,8 @@ const handleDictionaryResponse = (response, { meaning, partOfSpeech }, propToExt
     return filteredLexicalEntries.flatMap(({ [propToExtract]: prop }) => prop);
 };
 
+const randomPhrase = () => randomPop(randomPhraseList.map((phrase) => ({ word: phrase, id: phrase.toLowerCase().replace(' ', '_') })));
+
 // DIALOGFLOW
 
 // random grammar changes that just sound better
@@ -92,7 +94,11 @@ const speechEnhancer = (text) => (
         .replace(/: ([a-z])/g, (_, firstLetter) => `. ${firstLetter.toUpperCase()}`)
 );
 
-const getRootPhrase = async ({ phrase, language }) => {
+const getRootPhrase = async ({ phrase, language, random }) => {
+    if (random) {
+        return randomPhrase();
+    }
+
     phrase = trimQuotes(phrase);
 
     const config = { headers: DICTIONARY_HEADERS };
@@ -109,6 +115,7 @@ app.intent('Default Welcome Intent', (conv) => {
         'Hello, what word would you like to hear the origin of?',
         'Hi, what word or phrase would you like to hear the origin of?',
     ]));
+    conv.ask(new Suggestions(['🎲 Random', randomPop(randomPhraseList), randomPop(randomPhraseList)]));
 });
 
 const getEtymology = async ({ rootPhrase, meaning, partOfSpeech, language, region }) => {
@@ -122,12 +129,12 @@ const getEtymology = async ({ rootPhrase, meaning, partOfSpeech, language, regio
     return etymologies[0];
 };
 
-const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
+const handleGetEtymology = async (conv, { phrase, article, word, meaning, random }) => {
     const { user: { locale } } = conv;
 
     try {
         const [language, region] = locale.split('-');
-        const { word: displayPhrase, id: originalRootPhrase } = await getRootPhrase({ phrase, language });
+        const { word: displayPhrase, id: originalRootPhrase } = await getRootPhrase({ phrase, language, random });
         const partOfSpeech = getPartOfSpeech({ article, word });
 
         let etymology;
@@ -162,7 +169,7 @@ const handleGetEtymology = async (conv, { phrase, article, word, meaning }) => {
     }
 };
 
-app.intent(['get_etymology', 'Default Welcome Intent - get_etymology'], handleGetEtymology);
+app.intent(['get_etymology', 'Default Welcome Intent - get_etymology', 'get_random_etymology'], handleGetEtymology);
 
 // const getSentences = async ({ rootPhrase, meaning, partOfSpeech, language }) => {
 //     const config = { headers: DICTIONARY_HEADERS };
