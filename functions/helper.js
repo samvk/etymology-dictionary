@@ -134,7 +134,6 @@ module.exports.simplifyWordArray = (arr) => arr.map(simplifyWord);
 module.exports.randomPhraseList = [
     'helicopter',
     'jumbo',
-    'jumbo',
     'sarcasm',
     'decimate',
     'lemur',
@@ -177,7 +176,6 @@ module.exports.randomPhraseList = [
     'January',
     'February',
     'April',
-    'May',
     'June',
     'July',
     'August',
