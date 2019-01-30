@@ -219,4 +219,5 @@ module.exports.randomPhraseList = [
     'umpire',
     'nickname',
     'newt',
+    'stigma',
 ];
