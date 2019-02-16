@@ -221,3 +221,49 @@ module.exports.randomPhraseList = [
     'newt',
     'stigma',
 ];
+
+// Speech enhancer
+
+const languageRegion = {
+    'Old English': 'de-DE', // closest match? (but it terms of spelling is this most accurate?)
+    'Middle English': 'de-DE', // closest match? (but it terms of spelling is this most accurate?)
+    German: 'de-DE',
+    French: 'fr-FR',
+    Spanish: 'es-ES',
+    Italian: 'it-IT',
+    Portuguese: 'pt_BR',
+    Hindi: 'en-IN', // should be 'hi_IN' when support is added
+    Sanskrit: 'en-IN', // should be 'hi_IN' when support is added
+    Chinese: 'zh-CN',
+    Japanese: 'js-JP',
+    Latin: 'it-IT', // closest match? (but it terms of spelling is this most accurate?)
+    Greek: 'el-GR',
+    Dutch: 'nl-NL',
+    Arabic: 'ar-SA',
+    Persian: 'fa-AF',
+    Russian: 'ru-RU',
+    Polish: 'pl-PL',
+};
+
+// NOTE::all of this currently does nothing. Uncomment when google adds <lang /> SSML support
+// const accentSsml = (foreignWord, language) => `<lang xml:lang="${languageRegion[language]}">${foreignWord}</lang>`;
+const accentSsml = (foreignWord, language) => foreignWord;
+
+const languagesPattern = Object.keys(languageRegion).join('|');
+const languageRegex = new RegExp(`(${languagesPattern}) ([^\\s(,\\.<]+)`, 'g');
+
+const addAccent = (text) => (
+    text.replace(languageRegex, (match, language, foreignWord) => {
+        if (['and', 'from', 'dialect'].includes(foreignWord)) {
+            return match;
+        }
+        return `${language} ${accentSsml(foreignWord, language)}`;
+    })
+);
+
+// random grammar changes that just sound better
+module.exports.speechEnhancer = (text) => (
+    addAccent(`<speak>${text}</speak>`)
+        .replace(/ ‘/g, ', ‘')
+        .replace(/: ([a-z])/g, (_, firstLetter) => `. ${firstLetter.toUpperCase()}`)
+);

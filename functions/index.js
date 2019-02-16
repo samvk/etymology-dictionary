@@ -2,7 +2,7 @@ const { dialogflow, SimpleResponse, BasicCard, Suggestions } = require('actions-
 const functions = require('firebase-functions');
 const axios = require('axios');
 const { DICTIONARY_HEADERS } = require('./config');
-const { stripCommonWords, sentenceToArray, simplifyWordArray, simplifyWordPossibilities, randomPhraseList } = require('./helper');
+const { stripCommonWords, sentenceToArray, simplifyWordArray, simplifyWordPossibilities, randomPhraseList, speechEnhancer } = require('./helper');
 const { trimQuotes, findFirstNonEmpty, randomPop } = require('./util');
 
 const app = dialogflow({ debug: true });
@@ -86,13 +86,6 @@ const handleDictionaryResponse = (response, { meaning, partOfSpeech }, propToExt
 const randomPhrase = () => randomPop(randomPhraseList.map((phrase) => ({ word: phrase, id: phrase.toLowerCase().replace(' ', '_') })));
 
 // DIALOGFLOW
-
-// random grammar changes that just sound better
-const speechEnhancer = (text) => (
-    text
-        .replace(/ ‘/g, ', ‘')
-        .replace(/: ([a-z])/g, (_, firstLetter) => `. ${firstLetter.toUpperCase()}`)
-);
 
 const getRootPhrase = async ({ phrase, language, random }) => {
     if (random) {
