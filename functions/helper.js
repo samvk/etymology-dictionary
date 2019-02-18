@@ -220,6 +220,7 @@ module.exports.randomPhraseList = [
     'nickname',
     'newt',
     'stigma',
+    'burrito',
 ];
 
 // Speech enhancer
