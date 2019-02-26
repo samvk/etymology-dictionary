@@ -1,3 +1,5 @@
+const { escapeXml } = require('./util');
+
 const commonWords = [
     'the',
     'be',
@@ -265,7 +267,7 @@ const addAccent = (text) => (
 
 // random grammar changes that just sound better
 module.exports.speechEnhancer = (text) => (
-    addAccent(`<speak>${text}</speak>`)
+    addAccent(`<speak>${escapeXml(text)}</speak>`)
         .replace(/ ‘/g, ', ‘')
         .replace(/: ([a-z])/g, (_, firstLetter) => `. ${firstLetter.toUpperCase()}`)
 );

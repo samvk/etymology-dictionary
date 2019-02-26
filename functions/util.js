@@ -1,6 +1,16 @@
 const randomPop = (arr) => arr[Math.floor(Math.random() * arr.length)];
 module.exports.randomPop = randomPop;
 
+module.exports.escapeXml = (str) => (
+    str.replace(/[<>&'"]/g, (char) => ({
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        "'": '&apos;',
+        '"': '&quot;',
+    }[char]))
+);
+
 // common phrases
 module.exports.sayOkay = () => randomPop(['Ok', 'Sure', 'Alright']);
 
