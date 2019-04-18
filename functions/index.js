@@ -86,7 +86,6 @@ const handleDictionaryResponse = (response, { meaning, partOfSpeech }, propToExt
 const randomPhrase = () => randomPop(randomPhraseList.map((phrase) => ({ word: phrase, id: phrase.toLowerCase().replace(' ', '_') })));
 
 // DIALOGFLOW
-
 const getRootPhrase = async ({ phrase, language, random }) => {
     if (random) {
         return randomPhrase();
