@@ -164,42 +164,4 @@ const handleGetEtymology = async (conv, { phrase, article, word, meaning, random
 
 app.intent(['get_etymology', 'Default Welcome Intent - get_etymology', 'get_random_etymology'], handleGetEtymology);
 
-// const getSentences = async ({ rootPhrase, meaning, partOfSpeech, language }) => {
-//     const config = { headers: DICTIONARY_HEADERS };
-//     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/sentences`, config);
-//
-//     const sentences = handleDictionaryResponse(response, { meaning, partOfSpeech }, 'sentences');
-//
-//     return sentences.map(({ text }) => text); // the different lexical entries might relate to the different part of speeches?
-// };
-//
-// const handleUseInSentence = async (conv, { phrase, article, word, meaning }) => {
-//     const { user: { locale } } = conv;
-//
-//     try {
-//         const [language] = locale.split('-');
-//         const { id: rootPhrase } = await getRootPhrase({ phrase, language });
-//         const partOfSpeech = getPartOfSpeech({ article, word });
-//
-//         const sentences = await getSentences({ rootPhrase, meaning, partOfSpeech, language });
-//         conv.close(`${sayOkay()}.  \n${randomPop(sentences)}`); // this should maybe loop through sentences (or is a random pop good enough)? Should it remember forever or just this session?
-//     } catch (error) {
-//         console.error(error);
-//         conv.close(`No entries found for ${phrase}.`);
-//     }
-// };
-//
-// app.intent('use_in_sentence', handleUseInSentence);
-
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest(app);
-
-// getEtymology({ phrase: 'lead', article: 'the', locale: 'en-US' });
-// getEtymology({ rootPhrase: 'tear', meaning: 'eye', partOfSpeech: undefined, language: 'en', region: 'US' });
-// handleGetEtymology(
-//     {
-//         ask(arg) { console.log('ASK:', arg); },
-//         close(arg) { console.log('CLOSE:', arg); },
-//         user: { locale: 'en-US' },
-//     },
-//     { phrase: 'running', article: '', word: '', meaning: '' },
-// );
