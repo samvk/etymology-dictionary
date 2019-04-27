@@ -1,42 +1,45 @@
-const { dialogflow, SimpleResponse, BasicCard, Suggestions } = require('actions-on-google');
-const functions = require('firebase-functions');
-const axios = require('axios');
-const { DICTIONARY_HEADERS } = require('./config');
-const { stripCommonWords, sentenceToArray, simplifyWordArray, simplifyWordPossibilities, randomPhraseList, speechEnhancer } = require('./helper');
-const { trimQuotes, findFirstNonEmpty, randomPop } = require('./util');
+import { dialogflow, SimpleResponse, BasicCard, Suggestions, DialogflowConversation } from 'actions-on-google';
+import * as functions from 'firebase-functions';
+import * as flatMap from 'array.prototype.flatmap';
+import axios, { AxiosResponse } from 'axios';
+import { DICTIONARY_HEADERS } from './config';
+import { stripCommonWords, sentenceToArray, simplifyWordArray, simplifyWordPossibilities, randomPhraseList, speechEnhancer } from './helper';
+import { trimQuotes, findFirstNonEmpty, randomPop } from './util';
 
-const app = dialogflow({ debug: true });
-
-// POLYFILLS
-if (!Array.prototype.flatMap) {
-    Object.defineProperty(Array.prototype, 'flatMap', {
-        value(callback) {
-            return Array.prototype.concat.apply([], this.map(callback));
-        },
-    });
+// TYPES & INTERFACES
+interface Entry {
+    etymologies?: string[],
 }
+interface LexicalEntry {
+    entries?: Entry[];
+    lexicalCategory: string;
+}
+type LexicalEntryProps = 'entries';
+type LexicalEntrySubProps = 'etymologies';
+type Haystacks = any[] | { [key: string]: {} } | ArrayLike<{}>;
 
 // HELPER FUNCTIONS
-const getPartOfSpeech = ({ article, word }) => {
+const getPartOfSpeech = ({ article, word }: { article: string, word: string }) => {
     if (['idiomatic', 'verb', 'noun', 'pronoun', 'adjective', 'adverb', 'preposition', 'conjunction', 'interjection', 'determiner', 'particle', 'residual'].includes(word)) {
         return word;
     }
 
-    return {
-        the: 'noun',
-        to: 'verb',
-    }[article];
+    switch (article) {
+        case 'the': return 'noun';
+        case 'to': return 'verb';
+        default: return null;
+    }
 };
 
 // @param keyToPreserve {String} the one key NOT to filter because it's what you're choosing from
-const sortAndFilterKeywords = (haystacks, needles, keyToPreserve) => {
-    needles = Array.isArray(needles) ? needles : simplifyWordArray(sentenceToArray(stripCommonWords(needles)));
+const sortAndFilterKeywords = (haystacks: Haystacks, needlesArg: string | string[], keyToPreserve?: string): Haystacks => {
+    const needles = Array.isArray(needlesArg) ? needlesArg : simplifyWordArray(sentenceToArray(stripCommonWords(needlesArg)));
 
     if (Array.isArray(haystacks)) {
         return haystacks
             .map((haystack) => ({
                 data: haystack,
-                score: sentenceToArray(JSON.stringify(haystack)).reduce((score, word) => (needles.some((needle) => word.startsWith(needle.toLowerCase())) ? ++score : score), 0),
+                score: sentenceToArray(JSON.stringify(haystack)).reduce((score, word) => (needles.some((needle) => word.startsWith(needle.toLowerCase())) ? score + 1 : score), 0),
             }))
             .filter(({ score }) => score > 0)
             .sort((a, b) => b.score - a.score)
@@ -55,19 +58,22 @@ const sortAndFilterKeywords = (haystacks, needles, keyToPreserve) => {
 };
 
 // @param subPropToExtract {String} if propToExtract is an array or objects, use this prop to also requires this nested property in one of the listed objects
-const handleDictionaryResponse = (response, { meaning, partOfSpeech }, propToExtract, subPropToExtract) => {
+const handleDictionaryResponse = (
+    response: AxiosResponse, { meaning, partOfSpeech }: { meaning: string | null, partOfSpeech: string | null }, propToExtract: LexicalEntryProps, subPropToExtract?: LexicalEntrySubProps
+) => {
     const { lexicalEntries } = response.data.results[0];
 
     let filteredLexicalEntries = lexicalEntries;
 
-    const propToExtractExists = (lexicalEntry) => (
-        lexicalEntry[propToExtract] && (!subPropToExtract || lexicalEntry[propToExtract].find(({ [subPropToExtract]: subProp }) => subProp))
+    const propToExtractExists = (lexicalEntry: LexicalEntry) => (
+        lexicalEntry[propToExtract] && (!subPropToExtract || (lexicalEntry[propToExtract] || []).find(({ [subPropToExtract]: subProp }) => !!subProp))
     );
 
     // filter by meaning
     if (meaning) {
+        const similarLexicalEntries = sortAndFilterKeywords(filteredLexicalEntries, meaning, subPropToExtract) as LexicalEntry[]; // `sortAndFilterKeywords` is called recursively but the final call returns LexicalEntry[]
         filteredLexicalEntries = findFirstNonEmpty(
-            sortAndFilterKeywords(filteredLexicalEntries, meaning, subPropToExtract).filter((lexicalEntry) => propToExtractExists(lexicalEntry)),
+            similarLexicalEntries.filter((lexicalEntry: LexicalEntry) => propToExtractExists(lexicalEntry)),
             filteredLexicalEntries,
         );
     }
@@ -75,31 +81,31 @@ const handleDictionaryResponse = (response, { meaning, partOfSpeech }, propToExt
     // filter by part of speech
     if (partOfSpeech) {
         filteredLexicalEntries = findFirstNonEmpty(
-            filteredLexicalEntries.filter((lexicalEntry) => ((lexicalEntry.lexicalCategory.toLowerCase() === partOfSpeech) && propToExtractExists(lexicalEntry))),
+            filteredLexicalEntries.filter((lexicalEntry: LexicalEntry) => ((lexicalEntry.lexicalCategory.toLowerCase() === partOfSpeech) && propToExtractExists(lexicalEntry))),
             filteredLexicalEntries,
         );
     }
 
-    return filteredLexicalEntries.flatMap(({ [propToExtract]: prop }) => prop);
+    return flatMap(filteredLexicalEntries, ({ [propToExtract]: prop }: LexicalEntry) => prop || []);
 };
 
 const randomPhrase = () => randomPop(randomPhraseList.map((phrase) => ({ word: phrase, id: phrase.toLowerCase().replace(' ', '_') })));
 
 // DIALOGFLOW
-const getRootPhrase = async ({ phrase, language, random }) => {
+const getRootPhrase = async ({ phrase, language, random }: { phrase: string, language: string, random: boolean }) => {
     if (random) {
         return randomPhrase();
     }
 
-    phrase = trimQuotes(phrase);
-
     const config = { headers: DICTIONARY_HEADERS };
-    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/search/${language}?q=${phrase}&limit=5`, config);
+    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/search/${language}?q=${trimQuotes(phrase)}&limit=5`, config);
 
     const rootPhrases = response.data.results;
 
     return rootPhrases[0];
 };
+
+const app = dialogflow({ debug: true });
 
 app.intent('Default Welcome Intent', (conv) => {
     conv.ask(randomPop([
@@ -110,18 +116,22 @@ app.intent('Default Welcome Intent', (conv) => {
     conv.ask(new Suggestions(['🎲 Random', randomPop(randomPhraseList), randomPop(randomPhraseList)]));
 });
 
-const getEtymology = async ({ rootPhrase, meaning, partOfSpeech, language, region }) => {
+const getEtymology = async (
+    { rootPhrase, meaning, partOfSpeech, language, region }: { rootPhrase: string, meaning: string | null, partOfSpeech: string | null, language: string, region: string }
+) => {
     const config = { headers: DICTIONARY_HEADERS };
     const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/regions=${region}`, config);
 
     const entries = handleDictionaryResponse(response, { meaning, partOfSpeech }, 'entries', 'etymologies');
 
-    const etymologies = entries.flatMap(({ etymologies }) => etymologies || []);
+    const etymologyList = flatMap(entries, ({ etymologies }: Entry) => etymologies || []);
 
-    return etymologies[0];
+    return etymologyList[0];
 };
 
-const handleGetEtymology = async (conv, { phrase, article, word, meaning, random }) => {
+const handleGetEtymology = async (
+    conv: DialogflowConversation, { phrase, article, word, meaning, random }: { phrase: string, article: string, word: string, meaning: string, random: boolean }
+) => {
     const { user: { locale } } = conv;
 
     try {
@@ -132,7 +142,7 @@ const handleGetEtymology = async (conv, { phrase, article, word, meaning, random
         let etymology;
         for (const rootPhrase of simplifyWordPossibilities(originalRootPhrase)) {
             try {
-                etymology = await getEtymology({ rootPhrase, meaning, partOfSpeech, language, region });
+                etymology = await getEtymology({ rootPhrase, meaning: (meaning || null), partOfSpeech, language, region });
             } catch (e) {
             }
 
@@ -157,7 +167,7 @@ const handleGetEtymology = async (conv, { phrase, article, word, meaning, random
         }
     } catch (error) {
         console.error(error);
-        conv.close(`No entries found for ${phrase}.`);
+        conv.close(`No results found for ${phrase}.`);
     }
 };
 

@@ -1,4 +1,4 @@
 node_modules
 .firebase
 .firebaserc
-functions/config.js
+functions/src/config.ts

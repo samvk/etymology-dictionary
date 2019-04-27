@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext", "esnext.array"],
+    "module": "commonjs",
+    "strict": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "outDir": "lib",
+    "sourceMap": true,
+    "target": "es2016"
+  },
+  "compileOnSave": true,
+  "include": [
+    "src"
+  ]
+}
