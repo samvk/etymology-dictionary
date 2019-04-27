@@ -1,4 +1,4 @@
-const { escapeXml } = require('./util');
+import { escapeXml } from './util';
 
 const commonWords = [
     'the',
@@ -97,29 +97,28 @@ const commonWords = [
     'us',
 ];
 
-module.exports.stripCommonWords = (phrase) => (
+export const stripCommonWords = (phrase: string) => (
     phrase.replace(/[\w-']+/g, (match) => (commonWords.includes(match) ? '' : match))
 );
 
-module.exports.sentenceToArray = (phrase) => (
+export const sentenceToArray = (phrase: string) => (
     phrase.toLowerCase().replace(/[.,/#!$%&;:{}=`~()'"‘’“”]/g, ' ').split(/\s+/)
 );
 
-const simplifyWordGenerator = (word, callback) => word.replace(
+const simplifyWordGenerator = (word: string, callback: (match: string, ...args: string[]) => string) => word.replace(
     /(\w{2})(ing|er|ed|[ie]?ly|e?y|e?s)$/g,
     callback,
 );
 
-const sameLetters = (str) => [...str].every((letter, _, list) => letter === list[0]);
+const sameLetters = (str: string) => [...str].every((letter, _, list) => letter === list[0]);
 
-const simplifyWord = (word) => simplifyWordGenerator(
+export const simplifyWord = (word: string) => simplifyWordGenerator(
     word,
     (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters),
 );
-module.exports.simplifyWord = simplifyWord;
 
 // TODO::simplify
-module.exports.simplifyWordPossibilities = (word) => ([...new Set([
+export const simplifyWordPossibilities = (word: string) => ([...new Set([
     word,
     simplifyWordGenerator(
         word,
@@ -131,9 +130,9 @@ module.exports.simplifyWordPossibilities = (word) => ([...new Set([
     ),
 ])]);
 
-module.exports.simplifyWordArray = (arr) => arr.map(simplifyWord);
+export const simplifyWordArray = (arr: string[]) => arr.map(simplifyWord);
 
-module.exports.randomPhraseList = [
+export const randomPhraseList = [
     'helicopter',
     'jumbo',
     'sarcasm',
@@ -222,6 +221,7 @@ module.exports.randomPhraseList = [
     'stigma',
     'burrito',
     'maverick',
+    'dinosaur',
 ];
 
 // Speech enhancer
@@ -248,23 +248,24 @@ const languageRegion = {
 };
 
 // NOTE::all of this currently does nothing. Uncomment when google adds <lang /> SSML support
-// const accentSsml = (foreignWord, language) => `<lang xml:lang="${languageRegion[language]}">${foreignWord}</lang>`;
-const accentSsml = (foreignWord, language) => foreignWord;
+// const accentSsml = (foreignWord: string, language: string) => `<lang xml:lang="${languageRegion[language]}">${foreignWord}</lang>`;
+const accentSsml = (foreignWord: string) => foreignWord;
 
 const languagesPattern = Object.keys(languageRegion).join('|');
 const languageRegex = new RegExp(`(${languagesPattern}) ([^\\s(,\\.<]+)`, 'g');
 
-const addAccent = (text) => (
+const addAccent = (text: string) => (
     text.replace(languageRegex, (match, language, foreignWord) => {
         if (['and', 'from', 'dialect'].includes(foreignWord)) {
             return match;
         }
-        return `${language} ${accentSsml(foreignWord, language)}`;
+        // return `${language} ${accentSsml(foreignWord, language)}`;
+        return `${language} ${accentSsml(foreignWord)}`;
     })
 );
 
 // random grammar changes that just sound better
-module.exports.speechEnhancer = (text) => (
+export const speechEnhancer = (text: string) => (
     addAccent(`<speak>${escapeXml(text)}</speak>`)
         .replace(/ ‘/g, ', ‘')
         .replace(/: ([a-z])/g, (_, firstLetter) => `. ${firstLetter.toUpperCase()}`)
