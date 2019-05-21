@@ -92,13 +92,13 @@ const handleDictionaryResponse = (
 const randomPhrase = () => randomPop(randomPhraseList.map((phrase) => ({ word: phrase, id: phrase.toLowerCase().replace(' ', '_') })));
 
 // DIALOGFLOW
-const getRootPhrase = async ({ phrase, language, random }: { phrase: string, language: string, random: boolean }) => {
+const getRootPhrase = async ({ phrase, locale, random }: { phrase: string, locale: string, random: boolean }) => {
     if (random) {
         return randomPhrase();
     }
 
     const config = { headers: DICTIONARY_HEADERS };
-    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/search/${language}?q=${trimQuotes(phrase)}&limit=5`, config);
+    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v2/search/${locale}?q=${trimQuotes(phrase)}&limit=5`, config);
 
     const rootPhrases = response.data.results;
 
@@ -117,10 +117,10 @@ app.intent('Default Welcome Intent', (conv) => {
 });
 
 const getEtymology = async (
-    { rootPhrase, meaning, partOfSpeech, language, region }: { rootPhrase: string, meaning: string | null, partOfSpeech: string | null, language: string, region: string }
+    { rootPhrase, meaning, partOfSpeech, locale }: { rootPhrase: string, meaning: string | null, partOfSpeech: string | null, locale: string }
 ) => {
     const config = { headers: DICTIONARY_HEADERS };
-    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v1/entries/${language}/${rootPhrase}/regions=${region}`, config);
+    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v2/entries/${locale}/${rootPhrase}`, config);
 
     const entries = handleDictionaryResponse(response, { meaning, partOfSpeech }, 'entries', 'etymologies');
 
@@ -135,14 +135,13 @@ const handleGetEtymology = async (
     const { locale } = conv.user;
 
     try {
-        const [language, region] = locale.split('-');
-        const { word: displayPhrase, id: originalRootPhrase } = await getRootPhrase({ phrase, language, random });
+        const { word: displayPhrase, id: originalRootPhrase } = await getRootPhrase({ phrase, locale, random });
         const partOfSpeech = getPartOfSpeech({ article, word });
 
         let etymology;
         for (const rootPhrase of simplifyWordPossibilities(originalRootPhrase)) {
             try {
-                etymology = await getEtymology({ rootPhrase, meaning: (meaning || null), partOfSpeech, language, region });
+                etymology = await getEtymology({ rootPhrase, meaning: (meaning || null), partOfSpeech, locale });
             } catch (e) {
             }
 
