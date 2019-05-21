@@ -132,7 +132,7 @@ const getEtymology = async (
 const handleGetEtymology = async (
     conv: DialogflowConversation, { phrase, article, word, meaning, random }: { phrase: string, article: string, word: string, meaning: string, random: boolean }
 ) => {
-    const { user: { locale } } = conv;
+    const { locale } = conv.user;
 
     try {
         const [language, region] = locale.split('-');
