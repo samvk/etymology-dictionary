@@ -91,14 +91,19 @@ const handleDictionaryResponse = (
 
 const randomPhrase = () => randomPop(randomPhraseList.map((phrase) => ({ word: phrase, id: phrase.toLowerCase().replace(' ', '_') })));
 
+// OXFORD DICTIONARIES API CONFIG
+const dictionaryApi = axios.create({
+    baseURL: 'https://od-api.oxforddictionaries.com/api/v2/',
+    headers: DICTIONARY_HEADERS,
+});
+
 // DIALOGFLOW
 const getRootPhrase = async ({ phrase, locale, random }: { phrase: string, locale: string, random: boolean }) => {
     if (random) {
         return randomPhrase();
     }
 
-    const config = { headers: DICTIONARY_HEADERS };
-    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v2/search/${locale}?q=${trimQuotes(phrase)}&limit=5`, config);
+    const response = await dictionaryApi.get(`/search/${locale}?q=${trimQuotes(phrase)}&limit=5`);
 
     const rootPhrases = response.data.results;
 
@@ -119,8 +124,7 @@ app.intent('Default Welcome Intent', (conv) => {
 const getEtymology = async (
     { rootPhrase, meaning, partOfSpeech, locale }: { rootPhrase: string, meaning: string | null, partOfSpeech: string | null, locale: string }
 ) => {
-    const config = { headers: DICTIONARY_HEADERS };
-    const response = await axios.get(`https://od-api.oxforddictionaries.com/api/v2/entries/${locale}/${rootPhrase}`, config);
+    const response = await dictionaryApi.get(`/entries/${locale}/${rootPhrase}`);
 
     const entries = handleDictionaryResponse(response, { meaning, partOfSpeech }, 'entries', 'etymologies');
 
