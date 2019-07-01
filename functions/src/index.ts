@@ -136,7 +136,7 @@ const getEtymology = async (
 const handleGetEtymology = async (
     conv: DialogflowConversation, { phrase, article, word, meaning, random }: { phrase: string, article: string, word: string, meaning: string, random: boolean }
 ) => {
-    const { locale } = conv.user;
+    const locale = conv.user.locale.toLowerCase();
 
     try {
         const { word: displayPhrase, id: originalRootPhrase } = await getRootPhrase({ phrase, locale, random });
