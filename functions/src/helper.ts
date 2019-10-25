@@ -112,7 +112,7 @@ export const sentenceToArray = (phrase: string) => (
 );
 
 const simplifyWordGenerator = (word: string, callback: (match: string, ...args: string[]) => string) => word.replace(
-    /(\w{2})(ing|er|ed|[ie]?ly|e?y|e?s)$/g,
+    /(\w{2})(ing|er|est|ed|[ie]?ly|e?y|e?s)$/g,
     callback,
 );
 
