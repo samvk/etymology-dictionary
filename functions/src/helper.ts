@@ -116,7 +116,7 @@ const simplifyWordGenerator = (word: string, callback: (match: string, ...args: 
     callback,
 );
 
-const sameLetters = (str: string) => [...str].every((letter, _, list) => letter === list[0]);
+export const sameLetters = (str: string) => [...str].every((letter, _, list) => letter === list[0]);
 
 export const simplifyWordArray = (wordArray: string[]) => wordArray.map((word: string) => simplifyWordGenerator(
     word,
