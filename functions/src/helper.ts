@@ -95,42 +95,47 @@ const commonWords = [
     'give',
     'most',
     'us',
+    'is',
+    'am',
+    'are',
 ];
 
 export const stripCommonWords = (phrase: string) => (
-    phrase.replace(/[\w-']+/g, (match) => (commonWords.includes(match) ? '' : match))
+    phrase
+        .replace(/[\w-']+/g, (match) => (commonWords.includes(match) ? '' : match))
+        .replace(/\s{2,}/g, ' ')
+        .trim()
 );
 
 export const sentenceToArray = (phrase: string) => (
-    phrase.toLowerCase().replace(/[.,/#!$%&;:{}=`~()'"‘’“”]/g, ' ').split(/\s+/)
+    phrase.toLowerCase().replace(/[.,/#!$%&;:{}=`—~()'"‘’“”]/g, ' ').split(/\s+/)
 );
 
 const simplifyWordGenerator = (word: string, callback: (match: string, ...args: string[]) => string) => word.replace(
-    /(\w{2})(ing|er|ed|[ie]?ly|e?y|e?s)$/g,
+    /(\w{2})(ing|er|est|ed|[ie]?ly|e?y|e?s)$/g,
     callback,
 );
 
-const sameLetters = (str: string) => [...str].every((letter, _, list) => letter === list[0]);
+export const sameLetters = (str: string) => [...str].every((letter, _, list) => letter === list[0]);
 
-export const simplifyWord = (word: string) => simplifyWordGenerator(
+export const simplifyWordArray = (wordArray: string[]) => wordArray.map((word: string) => simplifyWordGenerator(
     word,
-    (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters),
-);
+    (_, previousTwoLetters) => (sameLetters(previousTwoLetters) ? previousTwoLetters[0] : previousTwoLetters),
+));
 
 // TODO::simplify
+// brute force guess the possible root of a word
 export const simplifyWordPossibilities = (word: string) => ([...new Set([
     word,
     simplifyWordGenerator(
         word,
-        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : `${previousLetters}e`),
+        (_, previousTwoLetters) => (sameLetters(previousTwoLetters) ? previousTwoLetters[0] : `${previousTwoLetters}e`),
     ),
     simplifyWordGenerator(
         word,
-        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : `${previousLetters}`),
+        (_, previousTwoLetters) => (sameLetters(previousTwoLetters) ? previousTwoLetters[0] : previousTwoLetters),
     ),
 ])]);
-
-export const simplifyWordArray = (arr: string[]) => arr.map(simplifyWord);
 
 export const randomPhraseList = [
     'helicopter',

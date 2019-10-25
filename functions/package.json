@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "lint": "tslint --project tsconfig.json",
+    "test": "jest",
     "build": "tsc",
     "serve": "firebase serve --only functions",
     "shell": "firebase experimental:functions:shell",
@@ -22,6 +23,9 @@
     "firebase-functions": "^2.1.0"
   },
   "devDependencies": {
+    "@types/jest": "^24.0.19",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.1.0",
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
   },
