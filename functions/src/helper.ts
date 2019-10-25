@@ -124,6 +124,7 @@ export const simplifyWord = (word: string) => simplifyWordGenerator(
 );
 
 // TODO::simplify
+// brute force guess the possible root of a word
 export const simplifyWordPossibilities = (word: string) => ([...new Set([
     word,
     simplifyWordGenerator(
