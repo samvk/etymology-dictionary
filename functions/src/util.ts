@@ -16,7 +16,7 @@ export const findFirstNonEmpty = (...arrs: any[][]) => arrs.find((arr) => (arr.l
 export const sayOkay = () => randomPop(['Ok', 'Sure', 'Alright']);
 
 // filter *unless* no results are returned
-// export const softFilter = (list, filterCallback) => {
+// export const softFilter = (list: any[], filterCallback: Parameters<typeof Array.prototype.filter>[0]) => {
 //     const filteredList = list.filter(filterCallback);
 //
 //     return filteredList.length ? filteredList : list;
