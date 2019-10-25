@@ -133,7 +133,7 @@ export const simplifyWordPossibilities = (word: string) => ([...new Set([
     ),
     simplifyWordGenerator(
         word,
-        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : `${previousLetters}`),
+        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters),
     ),
 ])]);
 
