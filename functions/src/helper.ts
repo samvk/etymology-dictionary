@@ -118,10 +118,10 @@ const simplifyWordGenerator = (word: string, callback: (match: string, ...args: 
 
 const sameLetters = (str: string) => [...str].every((letter, _, list) => letter === list[0]);
 
-export const simplifyWord = (word: string) => simplifyWordGenerator(
+export const simplifyWordArray = (wordArray: string[]) => wordArray.map((word: string) => simplifyWordGenerator(
     word,
     (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters),
-);
+));
 
 // TODO::simplify
 // brute force guess the possible root of a word
@@ -136,8 +136,6 @@ export const simplifyWordPossibilities = (word: string) => ([...new Set([
         (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : `${previousLetters}`),
     ),
 ])]);
-
-export const simplifyWordArray = (arr: string[]) => arr.map(simplifyWord);
 
 export const randomPhraseList = [
     'helicopter',
