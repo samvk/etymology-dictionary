@@ -120,7 +120,7 @@ const sameLetters = (str: string) => [...str].every((letter, _, list) => letter 
 
 export const simplifyWordArray = (wordArray: string[]) => wordArray.map((word: string) => simplifyWordGenerator(
     word,
-    (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters),
+    (_, previousTwoLetters) => (sameLetters(previousTwoLetters) ? previousTwoLetters[0] : previousTwoLetters),
 ));
 
 // TODO::simplify
@@ -129,11 +129,11 @@ export const simplifyWordPossibilities = (word: string) => ([...new Set([
     word,
     simplifyWordGenerator(
         word,
-        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : `${previousLetters}e`),
+        (_, previousTwoLetters) => (sameLetters(previousTwoLetters) ? previousTwoLetters[0] : `${previousTwoLetters}e`),
     ),
     simplifyWordGenerator(
         word,
-        (_, previousLetters) => (sameLetters(previousLetters) ? previousLetters[0] : previousLetters),
+        (_, previousTwoLetters) => (sameLetters(previousTwoLetters) ? previousTwoLetters[0] : previousTwoLetters),
     ),
 ])]);
 
