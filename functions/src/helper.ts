@@ -95,6 +95,9 @@ const commonWords = [
     'give',
     'most',
     'us',
+    'is',
+    'am',
+    'are',
 ];
 
 export const stripCommonWords = (phrase: string) => (
