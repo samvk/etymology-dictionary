@@ -101,7 +101,10 @@ const commonWords = [
 ];
 
 export const stripCommonWords = (phrase: string) => (
-    phrase.replace(/[\w-']+/g, (match) => (commonWords.includes(match) ? '' : match))
+    phrase
+        .replace(/[\w-']+/g, (match) => (commonWords.includes(match) ? '' : match))
+        .replace(/\s{2,}/g, ' ')
+        .trim()
 );
 
 export const sentenceToArray = (phrase: string) => (
