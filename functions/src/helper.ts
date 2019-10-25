@@ -108,7 +108,7 @@ export const stripCommonWords = (phrase: string) => (
 );
 
 export const sentenceToArray = (phrase: string) => (
-    phrase.toLowerCase().replace(/[.,/#!$%&;:{}=`~()'"‘’“”]/g, ' ').split(/\s+/)
+    phrase.toLowerCase().replace(/[.,/#!$%&;:{}=`—~()'"‘’“”]/g, ' ').split(/\s+/)
 );
 
 const simplifyWordGenerator = (word: string, callback: (match: string, ...args: string[]) => string) => word.replace(
